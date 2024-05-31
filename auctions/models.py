@@ -36,8 +36,8 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,)
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
     comment = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
     
-
     def __str__(self):
         return f"{self.user}: {self.comment}"
 
@@ -45,12 +45,3 @@ class Watchlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,)
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
     watching = models.BooleanField(default=False)
-
-class Comment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE,)
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
-    comment = models.TextField()
-    timestamp = models.DateTimeField(default=timezone.now)
-    
-    def __str__(self):
-        return f"{self.user}: {self.comment}"
