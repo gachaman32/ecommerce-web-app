@@ -1,0 +1,44 @@
+{% extends 'auctions/layout.html' %}
+
+{% block title %}Active Listings{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container px-4 px-lg-5 mt-5">
+        <div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
+            <!-- Product cards -->
+            {% for listing in active_listings %}
+            <div class="col mb-5">
+                <div class="card h-100">
+                    <!-- Product image-->
+                    <img class="card-img-top" src="{{ listing.imgLink }}" alt="{{ listing.title }}" />
+                    <!-- Product details-->
+                    <div class="card-body p-4">
+                        <div class="text-center">
+                            <!-- Product name-->
+                            <h5 class="fw-bolder">{{ listing.title }}</h5>
+                            <!-- Product description-->
+                            <p class="card-text">{{ listing.description }}</p>
+                            <!-- Product price-->
+                            <span class="fw-bold">Price:</span> ${{ listing.price }}
+                            <!-- Listed by-->
+                            <p class="mt-2"><em>Listed by: {{ listing.user.username }}</em></p>
+                        </div>
+                    </div>
+                    <!-- Product actions-->
+                    <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                        <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="{% url 'listing' listing.id %}">View Listing</a></div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col">
+                <div class="text-center">
+                    <h6>No active listings.</h6>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

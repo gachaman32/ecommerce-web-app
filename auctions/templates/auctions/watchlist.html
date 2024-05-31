@@ -1,0 +1,121 @@
+{% extends "auctions/layout.html" %}
+
+{% block title %}Watchlist{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <h1 class="text-center mb-4">Items On Your Cart:</h1>
+            {% if listings %}
+                <div class="row row-cols-1 row-cols-md-3 g-3 justify-content-center">
+                    {% for listing in listings %}
+                        {% if not listing.sold %}
+                            <div class="col-md-2 d-flex align-items-stretch">
+                                <div class="card h-100">
+                                    <img src="{{ listing.imgLink }}" class="card-img-top img-fluid" alt="{{ listing.title }}" style="height: 200px; object-fit: cover;">
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title"><a href="{% url 'listing' listing.id %}">{{ listing.title }}</a></h5>
+                                        <p class="card-text">Bid: ${{ listing.price }}</p>
+                                        <form method="post" action="{% url 'removingWatchlist' listing.id %}" class="mt-auto remove-item-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger">Remove from Cart</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-6 mx-auto">
+                        <h3 class="text-center mb-3">Total: $<span id="total-price">{{ total_price }}</span></h3>
+                        <form id="checkout-form" action="{% url 'watchlist_checkout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-dark btn-lg btn-block">
+                                <i class="bi bi-cart-plus"></i> Buy Now
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <h6 class="text-center">Your cart is empty.</h6>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    
+    const stripe = Stripe('{{ stripe_publishable_key }}');
+
+    document.getElementById('checkout-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formAction = event.target.action;
+
+    const { id } = await fetch(formAction, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({})
+    }).then((response) => response.json());
+
+    if (id) {
+        const { error } = await stripe.redirectToCheckout({ sessionId: id });
+        if (error) {
+            console.error(error);
+        }
+    } else {
+        console.error('Error creating checkout session');
+    }
+});
+
+// Add an event listener to all remove item forms
+document.querySelectorAll('.remove-item-form').forEach(form => {
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formAction = event.target.action;
+
+        // Send a POST request to remove the item from the cart
+        const response = await fetch(formAction, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({})
+        });
+
+        if (response.ok) {
+            // If the removal was successful, redirect to the watchlist page and refresh
+            window.location.href = '{{ watchlist.html }}'; // Redirect to the current page
+        } else {
+            // Handle errors if needed
+            console.error('Error removing item from cart');
+        }
+    });
+});
+
+</script>
+
+<style>
+/* Adjust card height */
+.card {
+    height: 100%;
+}
+
+/* Center the "Make Payment" button */
+#checkout-form {
+    text-align: center;
+}
+
+/* Adjust spacing for the "Total" section */
+#total-price {
+    margin-bottom: 1.5rem;
+}
+</style>
+
+{% endblock %}

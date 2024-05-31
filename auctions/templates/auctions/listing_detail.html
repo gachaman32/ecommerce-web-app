@@ -1,0 +1,174 @@
+{% extends 'auctions/layout.html' %}
+{% load static %}
+{% block title %}{{ listing.title }}{% endblock %}
+
+{% block content %}
+<!-- Product section-->
+<section class="py-5">
+    <div class="container px-4 px-lg-5 my-5">
+        <div class="row gx-4 gx-lg-5 align-items-center">
+            <div class="col-md-6">
+                <img class="listing-detail-img card-img-top mb-5 mb-md-0" src="{{ listing.imgLink }}" alt="{{ listing.title }}" />
+            </div>
+            <div class="col-md-6">
+                <h1 class="display-5 fw-bolder">{{ listing.title }}</h1>
+                <div class="fs-5 mb-5">
+                    <span class="fw-bold">Price:</span>
+                    ${{ listing.price }}
+                </div>
+                <p class="lead">{{ listing.desc }}</p>
+                <p><em>Listed by: {{ listing.user.username }}</em></p>
+                <div class="d-flex">
+                    <div class="d-flex justify-content-between">
+                        <form action="{% url 'addingWatchlist' listing.id %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-dark flex-grow-1 me-2" type="submit">
+                                <i class="bi-cart-fill me-1"></i>
+                                Add to Cart
+                            </button>
+                        </form>
+                        <button id="checkout-button" class="btn btn-outline-dark flex-grow-1">
+                            <i class="bi-credit-card-fill me-1"></i>
+                            Buy Now
+                        </button>
+                    </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comments section -->
+<section class="py-5">
+    <div class="container px-4 px-lg-5 my-5">
+        <h2 class="fw-bolder mb-4">Comments</h2>
+        <form action="{% url 'add_comment' listing.id %}" method="POST" class="mb-4">
+            {% csrf_token %}
+            <div class="comment-form">
+                <textarea class="form-control" id="comment" name="comment" rows="1" placeholder="Add a comment..." style="resize: none;"></textarea>
+                <div>
+                    <button type="submit" class="btn btn-outline-dark">Comment</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('comment').value=''">Cancel</button>
+                </div>
+            </div>
+        </form>
+        <div class="comment-section">
+            {% for comment in comments %}
+            <div class="comment-card mb-3">
+                <div class="comment-header d-flex align-items-center mb-2">
+                    <img class="comment-avatar rounded-circle" src="{% static 'auctions/user.png' %}" alt="User Avatar">
+                    <div class="ms-3">
+                        <p class="mb-0"><span class="fw-bold">{{ comment.user.username }}</span> <small class="text-muted">{{ comment.timestamp|timesince }} ago</small></p>
+                    </div>
+                </div>
+                
+                
+                <p class="comment-text">{{ comment.comment }}</p>
+            </div>
+            {% empty %}
+            <div class="comment-card">
+                <p>No comments yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Related items section-->
+<section class="py-5 bg-light">
+    <div class="container px-4 px-lg-5 mt-5">
+        <h2 class="fw-bolder mb-4">Related products</h2>
+        <div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
+            {% for related_listing in related_listings %}
+            <div class="col mb-5">
+                <div class="card h-100">
+                    <!-- Product image-->
+                    <img class="card-img-top" src="{{ related_listing.imgLink }}" alt="{{ related_listing.title }}" />
+                    <!-- Product details-->
+                    <div class="card-body p-4">
+                        <div class="text-center">
+                            <!-- Product name-->
+                            <h5 class="fw-bolder">{{ related_listing.title }}</h5>
+                            <!-- Product price-->
+                            ${{ related_listing.price }}
+                        </div>
+                    </div>
+                    <!-- Product actions-->
+                    <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                        <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="{% url 'listing' related_listing.id %}">View Listing</a></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script type="text/javascript">
+    var stripe = Stripe("{{ stripe_publishable_key }}");
+
+    document.getElementById("checkout-button").addEventListener("click", function () {
+        fetch("{% url 'listed_detail_checkout' listing.id %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+        .then(function (response) {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(function (sessionId) {
+            return stripe.redirectToCheckout({ sessionId: sessionId.id });
+        })
+        .then(function (result) {
+            if (result.error) {
+                alert(result.error.message);
+            }
+        })
+        .catch(function (error) {
+            console.error("Error:", error);
+        });
+    });
+</script>
+
+<style>
+.comment-section {
+        max-width: 600px;
+        margin: 0; /* Remove auto margin */
+        text-align: left;
+        margin-left: 0; /* Adjust margin-left to 0 */
+    }
+    .comment-card {
+        padding: 10px 0;
+        margin: 0; /* Remove auto margin */
+    }
+    .comment-header {
+        display: flex;
+        align-items: center;
+    }
+    .comment-avatar {
+        width: 30px; /* Decreased size */
+        height: 30px; /* Decreased size */
+    }
+    .comment-text {
+        margin: 10px 0 0 50px; /* Adjusted margin to fit the new avatar size */
+    }
+    .comment-form {
+        display: flex;
+        flex-direction: column; /* Display in a column format */
+    }
+    .comment-form textarea {
+        margin-bottom: 10px; /* Add some margin between textarea and buttons */
+    }
+    .comment-form .btn-container {
+        display: flex;
+        justify-content: space-between;
+    }
+    .comment-form button {
+        flex: 1; /* Make buttons take up full width */
+    }
+</style>
+
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "auctions/layout.html" %}
+
+{% block title %}Create Listing{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2 class="mb-4 text-center">Create Listing</h2>
+            <form action="{% url 'createListing' %}" method="post" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-6">
+                    <label for="title" class="form-label">Title of the listing:</label>
+                    <input type="text" name="title" class="form-control" id="title" value="{{ listingForm.title.value|default_if_none:"" }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="bid" class="form-label">Price:</label>
+                    <input type="text" name="bid" class="form-control" id="bid" value="{{ listingForm.bid.value|default_if_none:"" }}">
+                </div>
+                <div class="col-12">
+                    <label for="desc" class="form-label">Description of listing:</label>
+                    <textarea name="desc" class="form-control" rows="5">{{ listingForm.desc.value|default_if_none:"" }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="imgLink" class="form-label">Attach Image URL (Optional):</label>
+                    <input type="text" name="imgLink" class="form-control" id="imgLink" value="{{ listingForm.imgLink.value|default_if_none:"" }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="categories" class="form-label">Category:</label>
+                    <select name="categories" class="form-select">
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-outline-dark">Create Listing</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

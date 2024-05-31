@@ -1,0 +1,33 @@
+{% extends 'auctions/layout.html' %}
+
+{% block title %}Shop by Categories{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container px-4 px-lg-5 mt-5">
+        <center><h1>{{ category }}</h1></center>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3 justify-content-center">
+            {% for listing in listings %}
+            <div class="col">
+                <br>
+                <div class="card">
+                    <img src="{{ listing.imgLink }}" class="card-img-top" alt="{{ listing.title }}">
+                    <div class="card-body" style="height: 200px;"> <!-- Set a fixed height for the card body -->
+                        <h5 class="card-title">{{ listing.title }}</h5>
+                        <p class="card-text">{{ listing.desc|truncatechars:10 }}</p> <!-- Limit description to 10 characters -->
+                        <p class="card-text">Bid: ${{ listing.price }}</p>
+                        <p class="card-text">Listed by: {{ listing.user }}</p>
+                        <a href="{% url 'listing' listing.id %}" class="btn btn-outline-dark">View Listing</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            {% if category %}
+            <br>
+            <h6>No listings in this category.</h6>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
