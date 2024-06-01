@@ -30,6 +30,11 @@
                 <div class="row mt-4">
                     <div class="col-md-6 mx-auto">
                         <h3 class="text-center mb-3">Total: $<span id="total-price">{{ total_price }}</span></h3>
+                        {% for listing in listings %}
+                            {% if request.user == listing.user %}
+                                <p class="text-danger">You cannot buy your own listing: {{ listing.title }}.</p>
+                            {% endif %}
+                        {% endfor %}
                         <form id="checkout-form" action="{% url 'watchlist_checkout' %}" method="post">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-dark btn-lg btn-block">

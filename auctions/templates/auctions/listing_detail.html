@@ -18,6 +18,7 @@
                 </div>
                 <p class="lead">{{ listing.desc }}</p>
                 <p><em>Listed by: {{ listing.user.username }}</em></p>
+                {% if request.user != listing.user %}
                 <div class="d-flex">
                     <div class="d-flex justify-content-between">
                         <form action="{% url 'addingWatchlist' listing.id %}" method="POST">
@@ -32,6 +33,11 @@
                             Buy Now
                         </button>
                     </div>
+                </div>
+                {% else %}
+                <p class="text-danger">You cannot buy your own listing.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
 </section>

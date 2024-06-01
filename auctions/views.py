@@ -26,6 +26,14 @@ def is_ajax(request):
 def watchlist_checkout(request):
     listOfIds = Watchlist.objects.filter(user=request.user, watching=True).values('listing')
     listings = Listing.objects.filter(id__in=listOfIds)
+
+    # Prevent lister from buying their own items
+    for listing in listings:
+        if request.user == listing.user:
+            return JsonResponse({
+                'error': f'You cannot buy your own listing: {listing.title}.'
+            })
+
     total_price = sum(listing.price for listing in listings)
 
     if total_price <= 0:
@@ -58,6 +66,13 @@ def watchlist_checkout(request):
 
 def listed_detail_checkout(request, listing_id):
     listing = Listing.objects.get(id=listing_id)
+    
+    # Prevent lister from buying their own item
+    if request.user == listing.user:
+        return JsonResponse({
+            'error': 'You cannot buy your own listing.'
+        })
+
     domain_url = settings.DOMAIN_URL
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=['card'],
@@ -80,6 +95,7 @@ def listed_detail_checkout(request, listing_id):
     return JsonResponse({
         'id': checkout_session.id
     })
+
 
 def success(request):
     return render(request, 'auctions/success.html')
