@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib.auth.views import LoginView
 from . import views
 
 urlpatterns = [
@@ -13,9 +12,7 @@ urlpatterns = [
     path('listing/<int:listingId>/payment', views.make_payment, name='make_payment'),
     path("removingWatchlist/<str:listingId>", views.removingWatchlist, name="removingWatchlist"),
     path("addingWatchlist/<str:listingId>", views.addingWatchlist, name="addingWatchlist"),
-    path("bid/<str:listingId>", views.bid, name="bid"),
     path("categories", views.category, name="categories"),
-    path("closingBid/<str:listingId>", views.closingBid, name="closingBid"),
     path("watchList/<str:userId>", views.watchList, name="watchlist"),
     path('create-checkout-session/', views.watchlist_checkout, name='watchlist_checkout'),
     path('create-checkout-session/<int:listing_id>/', views.listed_detail_checkout, name='listed_detail_checkout'),

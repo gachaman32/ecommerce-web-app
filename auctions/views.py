@@ -1,33 +1,26 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.http import JsonResponse
 import stripe
 from .forms import whenCreatingListingForms
-from .models import Listing, Comment, Watchlist, Category, Bid, User
+from .models import Listing, Comment, Watchlist, Category, User
 from django.db.models import Sum
 from decimal import Decimal
 from django.contrib.sites.shortcuts import get_current_site
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-
-
-
-
 def is_ajax(request):
     return request.headers.get('x-requested-with') == 'XMLHttpRequest'
-
 
 def watchlist_checkout(request):
     listOfIds = Watchlist.objects.filter(user=request.user, watching=True).values('listing')
     listings = Listing.objects.filter(id__in=listOfIds)
 
-    # Prevent lister from buying their own items
     for listing in listings:
         if request.user == listing.user:
             return JsonResponse({
@@ -51,7 +44,7 @@ def watchlist_checkout(request):
                     'product_data': {
                         'name': "Your Cart Items",
                     },
-                    'unit_amount': int(total_price * 100),  # total price in cents
+                    'unit_amount': int(total_price * 100),
                 },
                 'quantity': 1,
             },
@@ -66,8 +59,7 @@ def watchlist_checkout(request):
 
 def listed_detail_checkout(request, listing_id):
     listing = Listing.objects.get(id=listing_id)
-    
-    # Prevent lister from buying their own item
+
     if request.user == listing.user:
         return JsonResponse({
             'error': 'You cannot buy your own listing.'
@@ -83,7 +75,7 @@ def listed_detail_checkout(request, listing_id):
                     'product_data': {
                         'name': listing.title,
                     },
-                    'unit_amount': int(listing.price * 100),  # price in cents
+                    'unit_amount': int(listing.price * 100),
                 },
                 'quantity': 1,
             },
@@ -96,7 +88,6 @@ def listed_detail_checkout(request, listing_id):
         'id': checkout_session.id
     })
 
-
 def success(request):
     return render(request, 'auctions/success.html')
 
@@ -105,18 +96,17 @@ def cancel(request):
 
 def index(request):
     listings = Listing.objects.filter(sold=False)
-    categories = Category.objects.all()  # Retrieve all categories
+    categories = Category.objects.all()
     context = {'active_listings': listings, 'categories': categories}
     context.update(navbar(request))
     return render(request, "auctions/index.html", context)
 
 def navbar(request):
-    categories = Category.objects.all()  # Retrieve all categories
+    categories = Category.objects.all()
     watchlist_count = 0
     if request.user.is_authenticated:
         watchlist_count = Watchlist.objects.filter(user=request.user, watching=True).count()
     return {'categories': categories, 'watchlist_count': watchlist_count}
-
 
 def login_view(request):
     if request.method == "POST":
@@ -141,42 +131,40 @@ def register(request):
     if request.method == "POST":
         username = request.POST["username"]
         email = request.POST["email"]
-        password1 = request.POST["password1"]  # Correctly access password1
-        password2 = request.POST["password2"]  # Correctly access password2
+        password1 = request.POST["password1"]
+        password2 = request.POST["password2"]
 
         if password1 != password2:
             return render(request, "auctions/register.html", {
                 "message": "Passwords must match."
             })
-        
+
         try:
-            user = User.objects.create_user(username, email, password1)  # Use password1 here
+            user = User.objects.create_user(username, email, password1)
             user.save()
         except IntegrityError:
             return render(request, "auctions/register.html", {
                 "message": "Username already taken."
             })
-        
+
         login(request, user)
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "auctions/register.html")
 
-
 @login_required
 def listing_detail(request, listingId):
     listing = get_object_or_404(Listing, id=listingId)
     related_listings = Listing.objects.filter(category=listing.category).exclude(id=listing.id)[:4]
-    categories = Category.objects.all()  # Retrieve all categories
+    categories = Category.objects.all()
     context = {
         "listing": listing,
         "comments": Comment.objects.filter(listing=listing),
         "related_listings": related_listings,
         "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-        "categories": categories,  # Include categories in the context
+        "categories": categories,
     }
     return render(request, "auctions/listing_detail.html", context)
-
 
 @login_required
 def add_comment(request, listingId):
@@ -199,7 +187,7 @@ def listingInfos(request, listingId):
     owner = listing.user
     category = Category.objects.get(category=listing.category)
     comments = Comment.objects.filter(listing=listing.id)
-    watching = Watchlist.objects.filter(user=user, listing=listing).first()  # Get the first entry or None
+    watching = Watchlist.objects.filter(user=user, listing=listing).first()
     return listing, user, owner, category, comments, watching
 
 @login_required
@@ -238,27 +226,19 @@ def addingWatchlist(request, listingId):
     watchlist_entry.save()
     return redirect('listing', listingId=listingId)
 
-
-
 @login_required
 def removingWatchlist(request, listingId):
     listing = get_object_or_404(Listing, id=listingId)
     watchlist_entry = Watchlist.objects.filter(user=request.user, listing=listing).first()
     if watchlist_entry:
         watchlist_entry.delete()
-        
-        # Recalculate total price
         total_price = Listing.objects.filter(id__in=Watchlist.objects.filter(user=request.user, watching=True).values('listing')).aggregate(Sum('price'))['price__sum'] or 0
-        
-        # Check if the cart is empty
         if total_price == 0:
-            # If the cart is empty, return a response to indicate that
             return JsonResponse({
                 'success': True,
                 'empty_cart': True,
             })
         else:
-            # If the cart still contains items, return the updated total price
             return JsonResponse({
                 'success': True,
                 'new_total_price': total_price
@@ -268,42 +248,6 @@ def removingWatchlist(request, listingId):
             'success': False,
             'error': 'Watchlist entry not found'
         })
-    
-@login_required
-def bid(request, listingId):
-    info = listingInfos(request, listingId)
-    listing, user, owner, category, comments, watch = info[0], info[1], info[2], info[3]
-    if request.method == "POST":
-        bid = request.POST["bid"]
-        listing.price = float(bid)
-        listing.save()
-        Bid.objects.create(user=user, price=bid, listing=listing)
-    context = {
-        "listing": listing,
-        "category": category,
-        "comments": comments,
-        "watching": watch,
-        "owner": owner,
-    }
-    return render(request, "auctions/listings.html", context)
-
-@login_required
-def closingBid(request, listingId):
-    info = listingInfos(request, listingId)
-    listing, user, category, owner, comments, watch = info[0], info[1], info[2], info[3]
-    listing.sold = True
-    listing.save()
-    winner = Bid.objects.get(price=listing.price, listing=listing).user
-    winning = user.id == winner.id
-    context = {
-        "listing": listing,
-        "category": category,
-        "comments": comments,
-        "watching": watch,
-        "owner": owner,
-        "thewinner": winning,
-    }
-    return render(request, "auctions/closebids.html", context)
 
 def category(request):
     category_id = request.GET.get('category')
@@ -319,20 +263,17 @@ def category(request):
     }
     return render(request, "auctions/categories.html", context)
 
-
 @login_required
 def watchList(request, userId):
     listOfIds = Watchlist.objects.filter(user=request.user, watching=True).values('listing')
     listings = Listing.objects.filter(id__in=listOfIds)
-    total_price = sum(float(listing.price) for listing in listings)  # Convert to float here
+    total_price = sum(float(listing.price) for listing in listings)
     
     return render(request, "auctions/watchlist.html", {
         "listings": listings,
         "total_price": total_price,
         "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY
     })
-
-
 
 @login_required
 def createListing(request):
@@ -341,7 +282,6 @@ def createListing(request):
         if form.is_valid():
             title = form.cleaned_data["title"]
             desc = form.cleaned_data["desc"]
-            # Remove commas from bid field and convert to Decimal
             bid = Decimal(form.cleaned_data["bid"].replace(',', ''))
             imgLink = form.cleaned_data["imgLink"]
             user = request.user

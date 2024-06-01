@@ -24,14 +24,6 @@ class Listing(models.Model):
     def __str__(self):
         return f"{self.title} posted by {self.user}"
 
-class Bid(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
-    price = models.DecimalField(max_digits=6, decimal_places=2)
-    
-    def __str__(self):
-        return f"bid on item: {self.listing} by {self.user} with price: {self.price}"
-
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,)
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
