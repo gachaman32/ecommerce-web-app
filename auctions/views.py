@@ -11,6 +11,7 @@ from .forms import whenCreatingListingForms
 from .models import Listing, Comment, Watchlist, Category, Bid, User
 from django.db.models import Sum
 from decimal import Decimal
+from django.contrib.sites.shortcuts import get_current_site
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -22,7 +23,6 @@ def is_ajax(request):
     return request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
 
-@login_required
 def watchlist_checkout(request):
     listOfIds = Watchlist.objects.filter(user=request.user, watching=True).values('listing')
     listings = Listing.objects.filter(id__in=listOfIds)
@@ -33,7 +33,7 @@ def watchlist_checkout(request):
             'error': 'No items in the cart'
         })
 
-    domain_url = 'http://localhost:8000/'
+    domain_url = settings.DOMAIN_URL
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=['card'],
         line_items=[
@@ -58,7 +58,7 @@ def watchlist_checkout(request):
 
 def listed_detail_checkout(request, listing_id):
     listing = Listing.objects.get(id=listing_id)
-    domain_url = 'http://localhost:8000/'
+    domain_url = settings.DOMAIN_URL
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=['card'],
         line_items=[
